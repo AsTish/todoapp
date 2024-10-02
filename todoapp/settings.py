@@ -39,19 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'todolist',
-    'rest_framework',
+    'corsheaders',
 ]
-
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ]
-}
-
-CSRF_COOKIE_SECURE = False
 
 CSRF_TRUSTED_ORIGINS = ["http://localhost:8080", "http://127.0.0.1:8080"]
 
@@ -79,8 +68,6 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_USE_SESSIONS = True
 
 ROOT_URLCONF = 'todoapp.urls'
-
-CSRF_COOKIE_HTTP = True;
 
 TEMPLATES = [
     {

@@ -9,46 +9,19 @@ from django.urls import reverse_lazy, reverse
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login, logout
-
-from rest_framework import generics
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.contrib.auth import authenticate, login
-from rest_framework import status
-from rest_framework.views import APIView
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth import login
 
 from todolist.models import Task_char 
-from todolist.serializers import TaskCharSerializer
-from todolist.permissions import IsNotAuthenticated
 
 # Create your views here.
 
-class LoginAPIView(APIView):
-    permission_classes = [IsNotAuthenticated]
-
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            login(request, user)
-            return Response({"detail": "Successfully logged in"}, status=status.HTTP_200_OK)
-        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class LogoutAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        logout(request)
-        return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+class CustomLoginView(LoginView):
+    template_name = 'login.html'
+    fields = '__all__'
+    redirect_authenticated_user = True
+    
+    def get_success_url(self):
+        return reverse_lazy('tasks')
     
 
 class RegisterPage(FormView):
@@ -70,79 +43,173 @@ class RegisterPage(FormView):
         return super(RegisterPage, self).get(*args, **kwargs)
 
 
-class TaskCharListView(generics.ListAPIView):
-    serializer_class = TaskCharSerializer
-    permission_classes = [IsAuthenticated]
+class TaskList(LoginRequiredMixin, ListView):
+    model = Task_char
+    context_object_name = 'tasks'
+    template_name = 'task_char_list.html'
 
-    def get_queryset(self):
-        # Фильтрация задач для текущего пользователя
-        queryset = Task_char.objects.filter(user=self.request.user)
-        
-        # Логика поиска
-        search_input = self.request.query_params.get('search-area', '')
+    def get_context_data(self, **kwargs):
+        # return super().get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)    # super() обращается к родительскому классу (ListView)
+        context['tasks'] = context['tasks'].filter(user=self.request.user)
+        context['count'] = context['tasks'].filter(completed=False)
+
+        search_input = self.request.GET.get('search-area') or ''
         if search_input:
-            queryset = queryset.filter(title__icontains=search_input)
-        
-        # Логика сортировки
-        sort_by = self.request.query_params.get('sort', 'updated_at')  # По умолчанию сортировка по дате обновления
-        order = self.request.query_params.get('order', 'desc')
-        if order == 'asc':
-            queryset = queryset.order_by('completed', sort_by)
+            context['tasks'] = context['tasks'].filter(title__icontains=search_input)
+            
+        context['search_input'] = search_input
+
+        # логика сортировки
+        sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
+        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+
+        if order == 'desc':
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
         else:
-            queryset = queryset.order_by('completed', f'-{sort_by}')
+            context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        
+        context['sort_by'] = sort_by
+        context['order'] = order
+        
+        return context
+    
+    
+class TaskDetail(LoginRequiredMixin, DetailView):
+    model = Task_char
+    context_object_name = 'task'
+    template_name = 'task_char_detail.html'
+    
+    
+class TaskCreate(LoginRequiredMixin, CreateView):
+    model = Task_char
+    fields = ['title', 'description', 'completed']
+    # fields = '__all__'
+    template_name = 'task_create.html'    # default *model*_from
+    # form_class = TaskForm    # we can create our own form
+    
+    def get_success_url(self):
+        # Получаем параметры из GET-запроса
+        order = self.request.GET.get('order', 'asc')
+        sort_by = self.request.GET.get('sort', 'updated_at')
+        
+        # Формируем URL с параметрами
+        success_url = f"{reverse('tasks')}?order={order}&sort={sort_by}"
+        return success_url
+    
+    def form_valid(self, form) -> HttpResponse:
+        form.instance.user = self.request.user
+        return super(TaskCreate, self).form_valid(form)
 
-        return queryset
-    
-    
-class TaskCharDetailView(generics.RetrieveAPIView):
-    queryset = Task_char.objects.all()
-    serializer_class = TaskCharSerializer
-    permission_classes = [IsAuthenticated]
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tasks'] = Task_char.objects.filter(user=self.request.user)
 
-    def get_queryset(self):
-        # Фильтрация по пользователю, чтобы каждый пользователь мог видеть только свои задачи
-        return Task_char.objects.filter(user=self.request.user)
-    
-    
-class TaskCharCreateView(generics.CreateAPIView):
-    queryset = Task_char.objects.all()
-    serializer_class = TaskCharSerializer
-    permission_classes = [IsAuthenticated]
+        search_input = self.request.GET.get('search-area') or ''
+        if search_input:
+            context['tasks'] = context['tasks'].filter(title__icontains=search_input)
+            
+        context['search_input'] = search_input
 
-    def perform_create(self, serializer):
-        # Ассоциация задачи с текущим пользователем
-        serializer.save(user=self.request.user)
+        # логика сортировки
+        sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
+        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+
+        if order == 'desc':
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        
+        context['sort_by'] = sort_by
+        context['order'] = order
+        
+        return context
             
 
-class TaskCharUpdateView(generics.UpdateAPIView):
-    queryset = Task_char.objects.all()
-    serializer_class = TaskCharSerializer
-    permission_classes = [IsAuthenticated]
+class TaskUpdate(LoginRequiredMixin, UpdateView):
+    model = Task_char
+    fields = ['title', 'description', 'completed']
+    template_name = 'task_create.html'
+    context_object_name = 'task'
 
-    def get_object(self):
-        # Получаем задачу текущего пользователя по `id`
-        obj = Task_char.objects.get(id=self.kwargs['pk'], user=self.request.user)
-        return obj
+    def get_success_url(self):
+        # Получаем параметры из GET-запроса
+        order = self.request.GET.get('order', 'asc')
+        sort_by = self.request.GET.get('sort', 'updated_at')
+        
+        # Формируем URL с параметрами
+        success_url = f"{reverse('tasks')}?order={order}&sort={sort_by}"
+        return success_url
 
-    def get_queryset(self):
-        # Возвращаем только задачи текущего пользователя
-        return Task_char.objects.filter(user=self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tasks'] = Task_char.objects.filter(user=self.request.user)
+
+        search_input = self.request.GET.get('search-area') or ''
+        if search_input:
+            context['tasks'] = context['tasks'].filter(title__icontains=search_input)
+            
+        context['search_input'] = search_input
+
+        # логика сортировки
+        sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
+        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+
+        if order == 'desc':
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        
+        context['sort_by'] = sort_by
+        context['order'] = order
+
+        return context
     
 
-class TaskDeleteAPIView(generics.DestroyAPIView):
-    queryset = Task_char.objects.all()
-    permission_classes = [IsAuthenticated]
+class TaskDelete(LoginRequiredMixin, DeleteView):
+    model = Task_char
+    context_object_name = 'del_task'
+    template_name = 'task_char_confirm_delete.html'
+    
+    def get_success_url(self):
+        # Получаем параметры из GET-запроса
+        order = self.request.GET.get('order', 'asc')
+        sort_by = self.request.GET.get('sort', 'updated_at')
+        
+        # Формируем URL с параметрами
+        success_url = f"{reverse('tasks')}?order={order}&sort={sort_by}"
+        return success_url
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tasks'] = Task_char.objects.filter(user=self.request.user)
+
+        search_input = self.request.GET.get('search-area') or ''
+        if search_input:
+            context['tasks'] = context['tasks'].filter(title__icontains=search_input)
+            
+        context['search_input'] = search_input
+
+        # логика сортировки
+        sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
+        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+
+        if order == 'desc':
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        
+        context['sort_by'] = sort_by
+        context['order'] = order
+
+        return context
 
     def delete(self, request, *args, **kwargs):
-        task = self.get_object()
-        if task.user != request.user:
-            return Response({"detail": "You do not have permission to delete this task."})
-        
-        # Удаляем задачу
-        task.delete()
+        # Удаляем объект
+        self.object = self.get_object()
+        self.object.delete()
 
-        # Возвращаем пустой ответ без статуса
-        return Response()  # Пустой Response без явного указания статуса    
+        return HttpResponse(status=204)    
 
     
     

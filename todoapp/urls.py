@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from todolist.views import TaskDelete, TaskList, TaskDetail, TaskCreate, TaskUpdate, CustomLoginView, RegisterPage
 from django.contrib.auth.views import LogoutView
 from django.views.generic import TemplateView
-from todolist.views import TaskCharListView, TaskCharDetailView, TaskCharCreateView, TaskCharUpdateView, TaskDeleteAPIView, LoginAPIView, LogoutAPIView
 
 urlpatterns = [
     path('swagger/', TemplateView.as_view(
@@ -27,13 +27,13 @@ urlpatterns = [
     ), name='swagger-ui'),
 
     path('admin/', admin.site.urls),
+    path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
-
-    path('tasks/', TaskCharListView.as_view(), name='task-list'),
-    path('tasks/<uuid:pk>/', TaskCharDetailView.as_view(), name='task-detail'),
-    path('tasks/create/', TaskCharCreateView.as_view(), name='task-create'),
-    path('tasks/update/<uuid:pk>/', TaskCharUpdateView.as_view(), name='task-update'),
-    path('tasks/delete/<uuid:pk>/', TaskDeleteAPIView.as_view(), name='task-delete'),
-    path('login/', LoginAPIView.as_view(), name='login'),
-    path('logout/', LogoutAPIView.as_view(), name='logout'),
+    path('register/', RegisterPage.as_view(), name='register'),
+    
+    path('', TaskList.as_view(), name='tasks'),
+    path('task/<uuid:pk>/', TaskDetail.as_view(), name='task'),
+    path('task-create/', TaskCreate.as_view(), name='task-create'),
+    path('task-update/<uuid:pk>', TaskUpdate.as_view(), name='task-update'),
+    path('task-delete/<uuid:pk>', TaskDelete.as_view(), name='task-delete'),
 ]

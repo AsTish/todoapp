@@ -62,12 +62,12 @@ class TaskList(LoginRequiredMixin, ListView):
 
         # логика сортировки
         sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
-        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+        order = self.request.GET.get('order', 'desc')  # По умолчанию порядок сортировки по возрастанию
 
-        if order == 'desc':
-            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
-        else:
+        if order == 'asc':
             context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
         
         context['sort_by'] = sort_by
         context['order'] = order
@@ -90,7 +90,7 @@ class TaskCreate(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         # Получаем параметры из GET-запроса
-        order = self.request.GET.get('order', 'asc')
+        order = self.request.GET.get('order', 'desc')
         sort_by = self.request.GET.get('sort', 'updated_at')
         
         # Формируем URL с параметрами
@@ -113,12 +113,12 @@ class TaskCreate(LoginRequiredMixin, CreateView):
 
         # логика сортировки
         sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
-        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+        order = self.request.GET.get('order', 'desc')  # По умолчанию порядок сортировки по возрастанию
 
-        if order == 'desc':
-            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
-        else:
+        if order == 'asc':
             context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
         
         context['sort_by'] = sort_by
         context['order'] = order
@@ -134,7 +134,7 @@ class TaskUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         # Получаем параметры из GET-запроса
-        order = self.request.GET.get('order', 'asc')
+        order = self.request.GET.get('order', 'desc')
         sort_by = self.request.GET.get('sort', 'updated_at')
         
         # Формируем URL с параметрами
@@ -153,12 +153,12 @@ class TaskUpdate(LoginRequiredMixin, UpdateView):
 
         # логика сортировки
         sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
-        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+        order = self.request.GET.get('order', 'desc')  # По умолчанию порядок сортировки по возрастанию
 
-        if order == 'desc':
-            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
-        else:
+        if order == 'asc':
             context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
         
         context['sort_by'] = sort_by
         context['order'] = order
@@ -173,7 +173,7 @@ class TaskDelete(LoginRequiredMixin, DeleteView):
     
     def get_success_url(self):
         # Получаем параметры из GET-запроса
-        order = self.request.GET.get('order', 'asc')
+        order = self.request.GET.get('order', 'desc')
         sort_by = self.request.GET.get('sort', 'updated_at')
         
         # Формируем URL с параметрами
@@ -192,12 +192,12 @@ class TaskDelete(LoginRequiredMixin, DeleteView):
 
         # логика сортировки
         sort_by = self.request.GET.get('sort', 'updated_at')  # По умолчанию сортировка по дате создания
-        order = self.request.GET.get('order', 'asc')  # По умолчанию порядок сортировки по возрастанию
+        order = self.request.GET.get('order', 'desc')  # По умолчанию порядок сортировки по возрастанию
 
-        if order == 'desc':
-            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
-        else:
+        if order == 'asc':
             context['tasks'] = context['tasks'].order_by('completed', sort_by)
+        else:
+            context['tasks'] = context['tasks'].order_by('completed', f'-{sort_by}')
         
         context['sort_by'] = sort_by
         context['order'] = order

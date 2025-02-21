@@ -69,6 +69,8 @@ CSRF_USE_SESSIONS = True
 
 ROOT_URLCONF = 'todoapp.urls'
 
+CSRF_COOKIE_HTTP = True;
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
